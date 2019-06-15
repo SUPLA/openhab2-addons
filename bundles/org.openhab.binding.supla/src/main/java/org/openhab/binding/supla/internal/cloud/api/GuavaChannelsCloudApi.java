@@ -1,25 +1,33 @@
 package org.openhab.binding.supla.internal.cloud.api;
 
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import pl.grzeslowski.jsupla.api.generated.ApiException;
 import pl.grzeslowski.jsupla.api.generated.model.Channel;
 import pl.grzeslowski.jsupla.api.generated.model.ChannelExecuteActionRequest;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.ExecutionException;
 
 import static java.util.Collections.unmodifiableList;
 
-final class CaffeineChannelsCloudApi implements ChannelsCloudApi {
+final class GuavaChannelsCloudApi implements ChannelsCloudApi {
     private final ChannelsCloudApi channelsCloudApi;
     private final LoadingCache<GetChannelKey, Channel> getChannelCache;
 
-    CaffeineChannelsCloudApi(final ChannelsCloudApi channelsCloudApi) {
+    GuavaChannelsCloudApi(final ChannelsCloudApi channelsCloudApi) {
         this.channelsCloudApi = channelsCloudApi;
-        getChannelCache = Caffeine.newBuilder()
-                                  .expireAfterWrite(CaffeineCache.cacheEvictTime, CaffeineCache.cacheEvictUnit)
-                                  .build(key -> channelsCloudApi.getChannel(key.id, key.include));
+        getChannelCache = CacheBuilder.newBuilder()
+                                  .expireAfterWrite(GuavaCache.cacheEvictTime, GuavaCache.cacheEvictUnit)
+                                  .build(new CacheLoader<GetChannelKey, Channel>() {
+                                      @Override
+                                      public Channel load(@SuppressWarnings("NullableProblems") final GetChannelKey key) throws Exception {
+                                          GuavaCache.LOGGER.trace("Missed cache for `getChannel`");
+                                          return channelsCloudApi.getChannel(key.id, key.include);
+                                      }
+                                  });
     }
 
     @Override
@@ -29,7 +37,11 @@ final class CaffeineChannelsCloudApi implements ChannelsCloudApi {
 
     @Override
     public Channel getChannel(final int id, final List<String> include) throws ApiException {
-        return getChannelCache.get(new GetChannelKey(id, include));
+        try {
+            return getChannelCache.get(new GetChannelKey(id, include));
+        } catch (ExecutionException e) {
+            throw new ApiException(e);
+        }
     }
 
     private static final class GetChannelKey {

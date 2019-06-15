@@ -64,7 +64,7 @@ public class CloudBridgeHandler extends BaseBridgeHandler {
             internalInitialize();
         } catch (Exception ex) {
             logger.error("Cannot start server!", ex);
-            updateStatus(OFFLINE, CONFIGURATION_ERROR, "Cannot start server! " + ex.getLocalizedMessage());
+            updateStatus(OFFLINE, CONFIGURATION_ERROR, "Cannot start server! " + ex.getMessage());
         }
     }
 
@@ -74,7 +74,14 @@ public class CloudBridgeHandler extends BaseBridgeHandler {
         this.oAuthToken = (String) config.get(O_AUTH_TOKEN);
 
         // get server info
-        ServerCloudApi serverApi = serverCloudApiFactory.newServerCloudApi(oAuthToken);
+        ServerCloudApi serverApi;
+        try {
+            serverApi = serverCloudApiFactory.newServerCloudApi(oAuthToken);
+        } catch (Exception e) {
+            logger.error("Cannot create client to Supla Cloud! Probably oAuth token is incorrect!", e);
+            updateStatus(OFFLINE, CONFIGURATION_ERROR, "Cannot create client to Supla Cloud! Probably oAuth token is incorrect! " + e.getMessage());
+            return;
+        }
         ServerInfo serverInfo = serverApi.getServerInfo();
         if (serverInfo == null) {
             updateStatus(OFFLINE, CONFIGURATION_ERROR, "Cannot get server info from server!");

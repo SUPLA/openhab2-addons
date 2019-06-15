@@ -382,7 +382,7 @@ class CloudDeviceHandlerTest {
         handler.handlePercentCommand(channelUID, command);
 
         // then
-        verify(ledCommandExecutor).changeColorBrightness(id, channelUID, command);
+        verify(ledCommandExecutor).changeColorBrightness(id, command);
     }
 
     @Test
@@ -397,7 +397,7 @@ class CloudDeviceHandlerTest {
         handler.handlePercentCommand(dimmerAndRgbChannelUID, command);
 
         // then
-        verify(ledCommandExecutor).changeBrightness(dimmerAndRgbChannelId, dimmerAndRgbChannelUID, command);
+        verify(ledCommandExecutor).changeBrightness(dimmerAndRgbChannelId, command);
     }
 
     @Test

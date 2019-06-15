@@ -254,6 +254,9 @@ public final class CloudDeviceHandler extends AbstractDeviceHandler {
         switch (channel.getFunction().getName()) {
             case CONTROLLINGTHEROLLERSHUTTER:
                 handleOneZeroCommand(channelId, command == UP, REVEAL, SHUT);
+                final int value = command == UP ? 100 : 0;
+                updateState(channelUID, new PercentType(value));
+                break;
         }
     }
 
@@ -262,10 +265,16 @@ public final class CloudDeviceHandler extends AbstractDeviceHandler {
         final ChannelInfo channelInfo = ChannelInfoParser.PARSER.parse(channelUID);
         final int channelId = channelInfo.getChannelId();
         final pl.grzeslowski.jsupla.api.generated.model.Channel channel = queryForChannel(channelId);
+        handleHsbCommand(channel, channelUID, command);
+    }
+
+    private void handleHsbCommand(final pl.grzeslowski.jsupla.api.generated.model.Channel channel,
+                                  final ChannelUID channelUID,
+                                  final HSBType command) throws ApiException {
         switch (channel.getFunction().getName()) {
             case RGBLIGHTING:
             case DIMMERANDRGBLIGHTING:
-                ledCommandExecutor.changeColor(channelId, channelUID, command);
+                ledCommandExecutor.changeColor(channel.getId(), command);
                 return;
             default:
                 logger.warn("Not handling `{}` ({}) on channel `{}`", command, command.getClass().getSimpleName(), channelUID);
@@ -291,7 +300,7 @@ public final class CloudDeviceHandler extends AbstractDeviceHandler {
         final pl.grzeslowski.jsupla.api.generated.model.Channel channel = queryForChannel(channelId);
         switch (channel.getFunction().getName()) {
             case CONTROLLINGTHEROLLERSHUTTER:
-                final int shut = command.intValue();
+                final int shut = 100 - command.intValue();
                 logger.debug("Channel `{}` is roller shutter; setting shut={}%", channelUID, shut);
                 final ChannelExecuteActionRequest action = new ChannelExecuteActionRequest().action(REVEAL_PARTIALLY).percentage(shut);
                 channelsApi.executeAction(action, channelId);
@@ -299,13 +308,14 @@ public final class CloudDeviceHandler extends AbstractDeviceHandler {
             case RGBLIGHTING:
             case DIMMERANDRGBLIGHTING:
                 if (channelInfo.getAdditionalChannelType() == null) {
-                    ledCommandExecutor.changeColorBrightness(channelId, channelUID, command);
+                    ledCommandExecutor.changeColorBrightness(channelId, command);
                 } else if (channelInfo.getAdditionalChannelType() == LED_BRIGHTNESS) {
-                    ledCommandExecutor.changeBrightness(channelId, channelUID, command);
+                    ledCommandExecutor.changeBrightness(channelId, command);
                 }
                 return;
             case DIMMER:
-                ledCommandExecutor.changeBrightness(channelId, channelUID, command);
+                ledCommandExecutor.changeBrightness(channelId, command);
+                break;
             default:
                 logger.warn("Not handling `{}` ({}) on channel `{}`", command, command.getClass().getSimpleName(), channelUID);
         }
@@ -361,11 +371,12 @@ public final class CloudDeviceHandler extends AbstractDeviceHandler {
         logger.warn("Not handling `{}` ({}) on channel `{}`", command, command.getClass().getSimpleName(), channelUID);
     }
 
-    private void changeColorOfRgb(HSBType hsbType, ChannelUID rgbChannelUid) throws ApiException {
+    private void changeColorOfRgb(final pl.grzeslowski.jsupla.api.generated.model.Channel channel,
+                                  final HSBType hsbType,
+                                  final ChannelUID rgbChannelUid) throws ApiException {
         logger.trace("Setting color to `{}` for channel `{}`", hsbType, rgbChannelUid);
-        handleHsbCommand(rgbChannelUid, hsbType);
+        handleHsbCommand(channel, rgbChannelUid, hsbType);
         updateState(rgbChannelUid, hsbType);
-        handleCommand(rgbChannelUid, REFRESH);
     }
 
     void refresh() {

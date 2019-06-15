@@ -4,7 +4,6 @@ import io.github.glytching.junit.extension.random.Random;
 import io.github.glytching.junit.extension.random.RandomBeansExtension;
 import org.eclipse.smarthome.core.library.types.HSBType;
 import org.eclipse.smarthome.core.library.types.PercentType;
-import org.eclipse.smarthome.core.thing.ChannelUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,7 +24,7 @@ class SuplaLedCommandExecutorTest {
     @InjectMocks SuplaLedCommandExecutor executor;
     @Mock ChannelsCloudApi channelsApi;
 
-    ChannelUID channelUID = new ChannelUID("a:b:c:d");
+    @Random int channelId;
 
     @Test
     @DisplayName("should send update about change of brightness for dimmer")
@@ -34,10 +33,10 @@ class SuplaLedCommandExecutorTest {
         // given
         final int brightnessValue = 55;
         final PercentType brightness = new PercentType(brightnessValue);
-        executor.setLedState(channelUID, PercentType.ZERO);
+        executor.setLedState(channelId, PercentType.ZERO);
 
         // when
-        executor.changeBrightness(channelId, channelUID, brightness);
+        executor.changeBrightness(channelId, brightness);
 
         // then
         final ChannelExecuteActionRequest expectedAction = new ChannelExecuteActionRequest()
@@ -48,16 +47,16 @@ class SuplaLedCommandExecutorTest {
 
     @Test
     @DisplayName("should send update about change of brightness for dimmer and rgb")
-    void dimmerAndRgbChangeOfBrightness(@Random int channelId) throws ApiException {
+    void dimmerAndRgbChangeOfBrightness() throws ApiException {
 
         // given
         final int brightnessValue = 55;
         final PercentType brightness = new PercentType(brightnessValue);
-        executor.setLedState(channelUID, PercentType.ZERO);
-        executor.setLedState(channelUID, HSBType.BLUE);
+        executor.setLedState(channelId, PercentType.ZERO);
+        executor.setLedState(channelId, HSBType.BLUE);
 
         // when
-        executor.changeBrightness(channelId, channelUID, brightness);
+        executor.changeBrightness(channelId, brightness);
 
         // then
         final ChannelExecuteActionRequest expectedAction = new ChannelExecuteActionRequest()
@@ -70,15 +69,15 @@ class SuplaLedCommandExecutorTest {
 
     @Test
     @DisplayName("should send update about change of color for dimmer and rgb")
-    void dimmerAndRgbChangeOfColor(@Random int channelId) throws ApiException {
+    void dimmerAndRgbChangeOfColor() throws ApiException {
 
         // given
         final int brightnessValue = 55;
-        executor.setLedState(channelUID, new PercentType(brightnessValue));
-        executor.setLedState(channelUID, HSBType.BLUE);
+        executor.setLedState(channelId, new PercentType(brightnessValue));
+        executor.setLedState(channelId, HSBType.BLUE);
 
         // when
-        executor.changeColor(channelId, channelUID, HSBType.RED);
+        executor.changeColor(channelId, HSBType.RED);
 
         // then
         final ChannelExecuteActionRequest expectedAction = new ChannelExecuteActionRequest()
